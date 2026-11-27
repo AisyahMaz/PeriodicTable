@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { useGoogleLogin } from '@react-oauth/google'
 import './App.css'
 import PeriodicTable3D from './components/PeriodicTable3D'
+import PrivacyPolicy from './PrivacyPolicy'
+import TermsOfService from './TermsOfService'
 
 type GoogleUser = {
   name: string
@@ -38,7 +40,13 @@ function App() {
       'https://www.googleapis.com/auth/spreadsheets.readonly'
     ].join(' '),
 
+     prompt: 'consent',
+
+ 
+
     onSuccess: async (tokenResponse) => {
+      
+ console.log('Granted scopes:', tokenResponse.scope)
       setLoading(true)
       setError('')
 
@@ -150,6 +158,16 @@ console.log(
     color: getNetWorthColor(person.networth)
   }))
 )
+
+const currentPath = window.location.pathname
+
+if (currentPath === '/privacy') {
+  return <PrivacyPolicy />
+}
+
+if (currentPath === '/terms') {
+  return <TermsOfService />
+}
 
   return (
     <div className="app-container">
