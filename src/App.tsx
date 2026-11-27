@@ -27,8 +27,33 @@ function getNetWorthColor(networth: number) {
 
 
 function App() {
-  const [user, setUser] = useState<GoogleUser | null>(null)
-  const [data, setData] = useState<string[][]>([])
+  const [profileOpen, setProfileOpen] = useState(false)
+  
+  // const [user, setUser] = useState<GoogleUser | null>(null)
+  const [user, setUser] = useState<GoogleUser | null>(() => {
+  const savedUser = localStorage.getItem('googleUser')
+
+  if (!savedUser) return null
+
+  try {
+    return JSON.parse(savedUser) as GoogleUser
+  } catch {
+    localStorage.removeItem('googleUser')
+    return null
+  }
+})
+  const [data, setData] = useState<string[][]>(() => {
+  const savedData = localStorage.getItem('googleSheetData')
+
+  if (!savedData) return []
+
+  try {
+    return JSON.parse(savedData) as string[][]
+  } catch {
+    localStorage.removeItem('googleSheetData')
+    return []
+  }
+})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -69,11 +94,14 @@ function App() {
 
         const profile = await profileResponse.json()
 
-        setUser({
-          name: profile.name,
-          email: profile.email,
-          picture: profile.picture
-        })
+       const userData: GoogleUser = {
+  name: profile.name,
+  email: profile.email,
+  picture: profile.picture
+}
+
+setUser(userData)
+localStorage.setItem('googleUser', JSON.stringify(userData))
 
         // 2. Get Google Sheet Data
         const spreadsheetId =
@@ -99,7 +127,10 @@ function App() {
           )
         }
 
-        setData(result.values ?? [])
+        const sheetData = result.values ?? []
+
+setData(sheetData)
+localStorage.setItem('googleSheetData', JSON.stringify(sheetData))
 
         console.log('Google Profile:', profile)
         console.log('Google Sheet Data:', result.values)
@@ -119,13 +150,16 @@ function App() {
     }
   })
 
-  const handleLogout = () => {
-    setUser(null)
-    setData([])
-    setError('')
-  }
+ const handleLogout = () => {
+  setUser(null)
+  setData([])
+  setError('')
+  setProfileOpen(false)
 
-  const headers = data[0] ?? []
+  localStorage.removeItem('googleUser')
+  localStorage.removeItem('googleSheetData')
+}
+  // const headers = data[0] ?? []
   const rows = data.slice(1)
 
 
@@ -172,28 +206,139 @@ if (currentPath === '/terms') {
   return (
     <div className="app-container">
 
-      <h1>3D Data Visualization</h1>
+      {/* <h1>3D Data Visualization</h1> */}
 
       {!user ? (
-        <button onClick={() => login()}>
-          Sign in with Google
+      
+  <div className="login-page">
+    <div className="login-background">
+      <div className="login-glow glow-one"></div>
+      <div className="login-glow glow-two"></div>
+    </div>
+
+    <div className="login-card">
+
+      <div className="login-logo">
+        <div className="logo-icon">
+          <span>✦</span>
+        </div>
+        <span>DataViz 3D</span>
+      </div>
+
+      <div className="login-content">
+
+        <div className="login-illustration">
+          <div className="orbit orbit-one"></div>
+          <div className="orbit orbit-two"></div>
+          <div className="orbit-center">
+            <span>✧</span>
+          </div>
+        </div>
+
+        <h1>Explore Data in a New Dimension</h1>
+
+        <p className="login-description">
+          Transform your data into an interactive
+          3D visualization experience.
+        </p>
+
+        <div className="login-divider"></div>
+
+        <h2>Welcome Back</h2>
+
+        <p className="login-subtitle">
+          Sign in to access your visualization dashboard.
+        </p>
+
+        <button
+          className="google-login-btn"
+          onClick={() => login()}
+          disabled={loading}
+        >
+          <img
+            src="https://www.svgrepo.com/show/475656/google-color.svg"
+            alt="Google"
+          />
+
+          <span>Continue with Google</span>
         </button>
+
+        <p className="login-security">
+          <span>🔒</span> Secure authentication powered by Google
+        </p>
+
+      </div>
+
+      <div className="login-footer">
+        <span>© 2026 DataViz 3D</span>
+        <div>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
       ) : (
-        <div className="user-profile">
+        <div className="dashboard-header">
+  <div className="dashboard-brand">
+    <div className="brand-icon">P</div>
+    <div>
+      <h2>Periodic Dashboard</h2>
+      <p>Google Sheets Visualization</p>
+    </div>
+  </div>
+
+  <div className="profile-wrapper">
+    <button
+      className="profile-button"
+      onClick={() => setProfileOpen(!profileOpen)}
+    >
+      <img
+        src={user.picture}
+        alt="Profile"
+        className="profile-avatar"
+      />
+
+      <div className="profile-info">
+        <span className="profile-name">{user.name}</span>
+        <span className="profile-email">{user.email}</span>
+      </div>
+
+      <span className="profile-arrow">
+        {profileOpen ? '▲' : '▼'}
+      </span>
+    </button>
+
+    {profileOpen && (
+      <div className="profile-dropdown">
+        <div className="dropdown-user">
           <img
             src={user.picture}
             alt="Profile"
-            width="60"
-            style={{ borderRadius: '50%' }}
+            className="dropdown-avatar"
           />
 
-          <h3>Welcome, {user.name}!</h3>
-          <p>{user.email}</p>
-
-          <button onClick={handleLogout}>
-            Logout
-          </button>
+          <div>
+            <strong>{user.name}</strong>
+            <p>{user.email}</p>
+          </div>
         </div>
+
+        <div className="dropdown-divider" />
+
+        <button
+          className="logout-button"
+          onClick={handleLogout}
+        >
+          <span>↪</span>
+          Sign out
+        </button>
+      </div>
+    )}
+  </div>
+</div>
       )}
 
       {loading && <p>Loading Google Sheet data...</p>}
@@ -205,57 +350,6 @@ if (currentPath === '/terms') {
       {data.length > 0 && (
         <div className="sheet-container">
            <PeriodicTable3D people={people} />
-
-          <h2>Google Sheet Data</h2>
-
-          <p>Total records: {rows.length}</p>
-
-          <div style={{ overflowX: 'auto' }}>
-            <table>
-              <thead>
-                <tr>
-                  {headers.map((header, index) => (
-                    <th key={index}>{header}</th>
-                  ))}
-                </tr>
-              </thead>
-
-             
-<tbody>
-  {people.map((person, rowIndex) => (
-    <tr
-      key={rowIndex}
-      style={{
-        backgroundColor: getNetWorthColor(person.networth),
-        color: '#ffffff'
-      }}
-    >
-      
-
-      <td>{person.name}</td>
-      <td>
-        <img
-          src={person.photo}
-          alt={person.name}
-          width="50"
-          height="50"
-          style={{
-            borderRadius: '50%',
-            objectFit: 'cover'
-          }}
-        />
-      </td>
-      <td>{person.age}</td>
-      <td>{person.country}</td>
-      <td>{person.interest}</td>
-      <td>${person.networth.toLocaleString()}</td>
-    </tr>
-  ))}
-</tbody>
-
-            </table>
-          </div>
-
         </div>
       )}
 
